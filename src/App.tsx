@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Project, Category } from './types';
 import { fetchProjects, saveProject, deleteProject, deleteAllProjects, syncUser } from './lib/api';
-import { signIn } from './lib/firebase';
+import { getAllProjects, saveProjectDB, deleteProjectDB, deleteAllProjectsDB } from './lib/db';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ProjectCard } from './components/ProjectCard';
@@ -27,9 +27,10 @@ export default function App() {
         setProjects(data);
         setIsLoaded(true);
       })
-      .catch(err => {
-        console.error("Failed to load projects:", err);
-        setProjects([]);
+      .catch(async (err) => {
+        console.warn("Cloud DB fetch failed, falling back to local DB", err);
+        const localData = await getAllProjects();
+        setProjects(localData);
         setIsLoaded(true);
       });
   }, []);
@@ -57,36 +58,53 @@ export default function App() {
 
   // Admin handlers
   const handleSaveProject = async (project: Project) => {
-    const savedProject = await saveProject(project);
-    
-    setProjects(prev => {
-      const isEditing = prev.some(p => p.id === savedProject.id);
-      if (isEditing) {
-        return prev.map(p => p.id === savedProject.id ? savedProject : p);
-      }
-      return [...prev, savedProject];
-    });
+    try {
+      const savedProject = await saveProject(project);
+      setProjects(prev => {
+        const isEditing = prev.some(p => p.id === savedProject.id);
+        if (isEditing) {
+          return prev.map(p => p.id === savedProject.id ? savedProject : p);
+        }
+        return [...prev, savedProject];
+      });
+    } catch (err) {
+      console.warn("Cloud save failed, falling back to local DB", err);
+      // Fallback to local IndexedDB
+      const projectWithId = { ...project, id: project.id === 'new' ? Date.now().toString() : project.id };
+      await saveProjectDB(projectWithId);
+      setProjects(prev => {
+        const isEditing = prev.some(p => p.id === projectWithId.id);
+        if (isEditing) {
+          return prev.map(p => p.id === projectWithId.id ? projectWithId : p);
+        }
+        return [...prev, projectWithId];
+      });
+    }
   };
 
   const handleDeleteProject = async (id: string | number) => {
-    await deleteProject(id.toString());
+    try {
+      await deleteProject(id.toString());
+    } catch (err) {
+      console.warn("Cloud delete failed, falling back to local DB", err);
+      await deleteProjectDB(id.toString());
+    }
     setProjects(prev => prev.filter(p => p.id.toString() !== id.toString()));
   };
 
   const handleDeleteAllProjects = async () => {
-    await deleteAllProjects();
+    try {
+      await deleteAllProjects();
+    } catch (err) {
+      console.warn("Cloud delete all failed, falling back to local DB", err);
+      await deleteAllProjectsDB();
+    }
     setProjects([]);
   };
 
   const handleActivateOwnerMode = async () => {
-    try {
-      await signIn();
-      await syncUser();
-      setIsOwnerMode(true);
-    } catch (error) {
-      console.error("Login failed:", error);
-      alert("Failed to activate owner mode. You must be an authorized owner.");
-    }
+    // Revert to normal local owner mode without login
+    setIsOwnerMode(true);
   };
 
   if (!isLoaded) return null;

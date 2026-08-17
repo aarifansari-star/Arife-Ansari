@@ -4,7 +4,7 @@ import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 const getHeaders = async () => {
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (auth.currentUser) {
+  if (auth && auth.currentUser) {
     const token = await auth.currentUser.getIdToken();
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -29,8 +29,8 @@ export async function syncUser() {
 export async function saveProject(project: Project): Promise<Project> {
   let imageUrl = project.image;
 
-  // Upload image if it's a new data URL
-  if (imageUrl.startsWith('data:image')) {
+  // Upload image if it's a new data URL and storage is available
+  if (imageUrl.startsWith('data:image') && storage) {
     const imageRef = ref(storage, `projects/${Date.now()}_${Math.random().toString(36).substring(7)}`);
     await uploadString(imageRef, imageUrl, 'data_url');
     imageUrl = await getDownloadURL(imageRef);

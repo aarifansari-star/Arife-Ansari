@@ -6,10 +6,11 @@ interface AdminPanelProps {
   projects: Project[];
   onSaveProject: (project: Project) => void;
   onDeleteProject: (id: string) => void;
+  onDeleteAllProjects: () => void;
   onClose: () => void;
 }
 
-export function AdminPanel({ projects, onSaveProject, onDeleteProject, onClose }: AdminPanelProps) {
+export function AdminPanel({ projects, onSaveProject, onDeleteProject, onDeleteAllProjects, onClose }: AdminPanelProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // Form state
@@ -262,7 +263,21 @@ export function AdminPanel({ projects, onSaveProject, onDeleteProject, onClose }
         </div>
       ) : (
         <>
-          <div className="mb-6 flex justify-end">
+          <div className="mb-6 flex justify-between items-center">
+            {projects.length > 0 ? (
+              <button 
+                onClick={() => {
+                  if (window.confirm('This will permanently delete all projects. Continue?')) {
+                    onDeleteAllProjects();
+                  }
+                }}
+                className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg font-medium transition-colors flex items-center gap-2 border border-red-500/20"
+              >
+                <Trash2 className="w-5 h-5" /> DELETE ALL PROJECTS
+              </button>
+            ) : (
+              <div />
+            )}
             <button 
               onClick={startNew}
               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-indigo-500/20"
@@ -285,8 +300,14 @@ export function AdminPanel({ projects, onSaveProject, onDeleteProject, onClose }
                 <tbody className="divide-y divide-slate-800/50">
                   {projects.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
-                        No projects found. Add one to get started.
+                      <td colSpan={4} className="px-6 py-16 text-center">
+                        <p className="text-xl font-medium text-slate-400 mb-6">No projects added yet.</p>
+                        <button 
+                          onClick={startNew}
+                          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors inline-flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                        >
+                          <Plus className="w-5 h-5" /> ADD YOUR FIRST PROJECT
+                        </button>
                       </td>
                     </tr>
                   ) : (

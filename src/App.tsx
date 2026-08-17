@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Project, Category } from './types';
 import { loadProjects } from './data';
-import { saveProjectDB, deleteProjectDB } from './lib/db';
+import { saveProjectDB, deleteProjectDB, deleteAllProjectsDB } from './lib/db';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ProjectCard } from './components/ProjectCard';
@@ -18,10 +18,14 @@ export default function App() {
   
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load initial data
   useEffect(() => {
-    loadProjects().then(setProjects);
+    loadProjects().then(data => {
+      setProjects(data);
+      setIsLoaded(true);
+    });
   }, []);
 
   // Filter projects based on search and category
@@ -66,6 +70,13 @@ export default function App() {
     await deleteProjectDB(id);
   };
 
+  const handleDeleteAllProjects = async () => {
+    setProjects([]);
+    await deleteAllProjectsDB();
+  };
+
+  if (!isLoaded) return null;
+
   return (
     <div className="min-h-screen bg-[#0b1121] text-slate-200 font-sans selection:bg-indigo-500/30 flex flex-col">
       <Header 
@@ -79,6 +90,7 @@ export default function App() {
             projects={projects}
             onSaveProject={handleSaveProject}
             onDeleteProject={handleDeleteProject}
+            onDeleteAllProjects={handleDeleteAllProjects}
             onClose={() => setIsAdminOpen(false)}
           />
         ) : (
@@ -107,7 +119,17 @@ export default function App() {
               </div>
               
               {/* Grid */}
-              {filteredProjects.length > 0 ? (
+              {projects.length === 0 ? (
+                <div className="text-center py-24 text-slate-500">
+                  <h3 className="text-2xl font-bold text-slate-300 mb-4">No projects added yet.</h3>
+                  <button 
+                    onClick={() => setIsAdminOpen(true)}
+                    className="mt-4 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors inline-flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                  >
+                    + ADD YOUR FIRST PROJECT
+                  </button>
+                </div>
+              ) : filteredProjects.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                   {filteredProjects.map(project => (
                     <ProjectCard 

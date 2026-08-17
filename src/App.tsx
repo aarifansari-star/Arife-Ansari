@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Project, Category } from './types';
-import { getAllProjects, saveProjectDB, deleteProjectDB, deleteAllProjectsDB } from './lib/db';
+import { fetchProjects, saveProject, deleteProject, deleteAllProjects, syncUser } from './lib/api';
+import { signIn } from './lib/firebase';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ProjectCard } from './components/ProjectCard';
@@ -21,10 +22,16 @@ export default function App() {
 
   // Load initial data
   useEffect(() => {
-    getAllProjects().then(data => {
-      setProjects(data);
-      setIsLoaded(true);
-    });
+    fetchProjects()
+      .then(data => {
+        setProjects(data);
+        setIsLoaded(true);
+      })
+      .catch(err => {
+        console.error("Failed to load projects:", err);
+        setProjects([]);
+        setIsLoaded(true);
+      });
   }, []);
 
   // Filter projects based on search and category
@@ -50,28 +57,36 @@ export default function App() {
 
   // Admin handlers
   const handleSaveProject = async (project: Project) => {
-    const isEditing = projects.some(p => p.id === project.id);
-    let updatedProjects: Project[];
+    const savedProject = await saveProject(project);
     
-    if (isEditing) {
-      updatedProjects = projects.map(p => p.id === project.id ? project : p);
-    } else {
-      updatedProjects = [...projects, project];
-    }
-    
-    setProjects(updatedProjects);
-    await saveProjectDB(project);
+    setProjects(prev => {
+      const isEditing = prev.some(p => p.id === savedProject.id);
+      if (isEditing) {
+        return prev.map(p => p.id === savedProject.id ? savedProject : p);
+      }
+      return [...prev, savedProject];
+    });
   };
 
-  const handleDeleteProject = async (id: string) => {
-    const updatedProjects = projects.filter(p => p.id !== id);
-    setProjects(updatedProjects);
-    await deleteProjectDB(id);
+  const handleDeleteProject = async (id: string | number) => {
+    await deleteProject(id.toString());
+    setProjects(prev => prev.filter(p => p.id.toString() !== id.toString()));
   };
 
   const handleDeleteAllProjects = async () => {
+    await deleteAllProjects();
     setProjects([]);
-    await deleteAllProjectsDB();
+  };
+
+  const handleActivateOwnerMode = async () => {
+    try {
+      await signIn();
+      await syncUser();
+      setIsOwnerMode(true);
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Failed to activate owner mode. You must be an authorized owner.");
+    }
   };
 
   if (!isLoaded) return null;
@@ -80,7 +95,7 @@ export default function App() {
     <div className="min-h-screen bg-[#0b1121] text-slate-200 font-sans selection:bg-indigo-500/30 flex flex-col">
       <Header 
         isOwnerMode={isOwnerMode} 
-        onActivateOwnerMode={() => setIsOwnerMode(true)}
+        onActivateOwnerMode={handleActivateOwnerMode}
         onExitOwnerMode={() => setIsOwnerMode(false)}
       />
       

@@ -1,7 +1,7 @@
 export type Category = 'Games' | 'Websites';
 
 export interface Project {
-  id: string;
+  id: string | number;
   name: string;
   description: string;
   category: Category;

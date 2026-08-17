@@ -5,13 +5,13 @@ import { Trash2, Edit2, Plus, Save, X, Image as ImageIcon, Eye, EyeOff } from 'l
 interface AdminPanelProps {
   projects: Project[];
   onSaveProject: (project: Project) => void;
-  onDeleteProject: (id: string) => void;
+  onDeleteProject: (id: string | number) => void;
   onDeleteAllProjects: () => void;
   onClose: () => void;
 }
 
 export function AdminPanel({ projects, onSaveProject, onDeleteProject, onDeleteAllProjects, onClose }: AdminPanelProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | number | null>(null);
   
   // Form state
   const [name, setName] = useState('');
@@ -104,7 +104,7 @@ export function AdminPanel({ projects, onSaveProject, onDeleteProject, onDeleteA
     }
     
     const project: Project = {
-      id: editingId === 'new' ? Date.now().toString() : editingId!,
+      id: editingId === 'new' ? 'new' : editingId!,
       name,
       description,
       category,

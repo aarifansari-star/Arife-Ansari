@@ -23,7 +23,7 @@ export function initDB(): Promise<IDBDatabase> {
 export async function getAllProjects(): Promise<Project[]> {
   try {
     const db = await initDB();
-    return new Promise((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.getAll();
@@ -39,7 +39,7 @@ export async function getAllProjects(): Promise<Project[]> {
 
 export async function saveProjectDB(project: Project): Promise<void> {
   const db = await initDB();
-  return new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.put(project);
@@ -51,7 +51,7 @@ export async function saveProjectDB(project: Project): Promise<void> {
 
 export async function deleteProjectDB(id: string): Promise<void> {
   const db = await initDB();
-  return new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.delete(id);
@@ -63,7 +63,7 @@ export async function deleteProjectDB(id: string): Promise<void> {
 
 export async function deleteAllProjectsDB(): Promise<void> {
   const db = await initDB();
-  return new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.clear();

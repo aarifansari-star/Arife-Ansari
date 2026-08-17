@@ -61,9 +61,9 @@ export default function App() {
     try {
       const savedProject = await saveProject(project);
       setProjects(prev => {
-        const isEditing = prev.some(p => p.id === savedProject.id);
+        const isEditing = prev.some(p => p.id.toString() === savedProject.id.toString());
         if (isEditing) {
-          return prev.map(p => p.id === savedProject.id ? savedProject : p);
+          return prev.map(p => p.id.toString() === savedProject.id.toString() ? savedProject : p);
         }
         return [...prev, savedProject];
       });
@@ -71,11 +71,15 @@ export default function App() {
       console.warn("Cloud save failed, falling back to local DB", err);
       // Fallback to local IndexedDB
       const projectWithId = { ...project, id: project.id === 'new' ? Date.now().toString() : project.id };
-      await saveProjectDB(projectWithId);
+      try {
+        await saveProjectDB(projectWithId);
+      } catch (dbErr) {
+        console.error("Local DB save also failed:", dbErr);
+      }
       setProjects(prev => {
-        const isEditing = prev.some(p => p.id === projectWithId.id);
+        const isEditing = prev.some(p => p.id.toString() === projectWithId.id.toString());
         if (isEditing) {
-          return prev.map(p => p.id === projectWithId.id ? projectWithId : p);
+          return prev.map(p => p.id.toString() === projectWithId.id.toString() ? projectWithId : p);
         }
         return [...prev, projectWithId];
       });

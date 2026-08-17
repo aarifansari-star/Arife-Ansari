@@ -4,7 +4,7 @@ import { Trash2, Edit2, Plus, Save, X, Image as ImageIcon, Eye, EyeOff } from 'l
 
 interface AdminPanelProps {
   projects: Project[];
-  onSaveProject: (project: Project) => void;
+  onSaveProject: (project: Project) => Promise<void>;
   onDeleteProject: (id: string | number) => void;
   onDeleteAllProjects: () => void;
   onClose: () => void;
@@ -12,6 +12,7 @@ interface AdminPanelProps {
 
 export function AdminPanel({ projects, onSaveProject, onDeleteProject, onDeleteAllProjects, onClose }: AdminPanelProps) {
   const [editingId, setEditingId] = useState<string | number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Form state
   const [name, setName] = useState('');
@@ -97,9 +98,13 @@ export function AdminPanel({ projects, onSaveProject, onDeleteProject, onDeleteA
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) {
       alert('Project name is required');
+      return;
+    }
+    if (!url.trim()) {
+      alert('Project URL is required');
       return;
     }
     
@@ -114,8 +119,16 @@ export function AdminPanel({ projects, onSaveProject, onDeleteProject, onDeleteA
       visible,
     };
     
-    onSaveProject(project);
-    setEditingId(null);
+    try {
+      setIsSaving(true);
+      await onSaveProject(project);
+      setEditingId(null);
+    } catch (error: any) {
+      alert('Failed to save project: ' + (error.message || 'Unknown error'));
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -255,9 +268,10 @@ export function AdminPanel({ projects, onSaveProject, onDeleteProject, onDeleteA
             </button>
             <button 
               onClick={handleSave}
-              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+              disabled={isSaving}
+              className={`px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg ${isSaving ? 'bg-indigo-600/50 cursor-not-allowed text-white/70' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'}`}
             >
-              <Save className="w-4 h-4" /> Save Project
+              <Save className="w-4 h-4" /> {isSaving ? 'Saving...' : 'Save Project'}
             </button>
           </div>
         </div>

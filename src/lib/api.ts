@@ -31,15 +31,25 @@ export async function saveProject(project: Project): Promise<Project> {
 
   // Upload image if it's a new data URL and storage is available
   if (imageUrl.startsWith('data:image') && storage) {
-    const imageRef = ref(storage, `projects/${Date.now()}_${Math.random().toString(36).substring(7)}`);
-    await uploadString(imageRef, imageUrl, 'data_url');
-    imageUrl = await getDownloadURL(imageRef);
+    try {
+      const imageRef = ref(storage, `projects/${Date.now()}_${Math.random().toString(36).substring(7)}`);
+      
+      // Prevent hanging by wrapping in a Promise.race with a timeout
+      await Promise.race([
+        uploadString(imageRef, imageUrl, 'data_url'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Image upload timed out')), 5000))
+      ]);
+      
+      imageUrl = await getDownloadURL(imageRef);
+    } catch (uploadError) {
+      console.warn("Failed to upload image to cloud storage. Proceeding with base64 string.", uploadError);
+      // Keep the original data URL
+    }
   }
 
   const projectData = { ...project, image: imageUrl };
 
   // Note: For simplicity, we use PUT for existing projects if they are numeric IDs
-  // Since earlier IDs were timestamps, we might need a better check, but we can rely on ID presence
   const isEditing = project.id !== 'new';
   
   if (isEditing) {

@@ -4,12 +4,8 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
-  // Use GITHUB_REPOSITORY for base path if available (username/repo -> /repo/)
-  const repo = process.env.GITHUB_REPOSITORY;
-  const basePath = repo ? `/${repo.split('/')[1]}/` : '/';
-
   return {
-    base: basePath,
+    base: '/Arife-Ansari/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

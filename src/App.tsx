@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Project, Category } from './types';
-import { loadProjects } from './data';
-import { saveProjectDB, deleteProjectDB, deleteAllProjectsDB } from './lib/db';
+import { getAllProjects, saveProjectDB, deleteProjectDB, deleteAllProjectsDB } from './lib/db';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ProjectCard } from './components/ProjectCard';
@@ -16,13 +15,13 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isOwnerMode, setIsOwnerMode] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load initial data
   useEffect(() => {
-    loadProjects().then(data => {
+    getAllProjects().then(data => {
       setProjects(data);
       setIsLoaded(true);
     });
@@ -31,8 +30,8 @@ export default function App() {
   // Filter projects based on search and category
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
-      // Only show visible projects to users (admin panel sees all)
-      if (!project.visible) return false;
+      // Only show visible projects to users (owner panel sees all)
+      if (!isOwnerMode && !project.visible) return false;
 
       // Search filter
       if (searchQuery && !project.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
@@ -47,7 +46,7 @@ export default function App() {
       
       return true;
     });
-  }, [projects, searchQuery, activeFilter]);
+  }, [projects, searchQuery, activeFilter, isOwnerMode]);
 
   // Admin handlers
   const handleSaveProject = async (project: Project) => {
@@ -80,18 +79,19 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0b1121] text-slate-200 font-sans selection:bg-indigo-500/30 flex flex-col">
       <Header 
-        isAdmin={isAdminOpen} 
-        onAdminToggle={() => setIsAdminOpen(!isAdminOpen)} 
+        isOwnerMode={isOwnerMode} 
+        onActivateOwnerMode={() => setIsOwnerMode(true)}
+        onExitOwnerMode={() => setIsOwnerMode(false)}
       />
       
       <main className="flex-grow">
-        {isAdminOpen ? (
+        {isOwnerMode ? (
           <AdminPanel 
             projects={projects}
             onSaveProject={handleSaveProject}
             onDeleteProject={handleDeleteProject}
             onDeleteAllProjects={handleDeleteAllProjects}
-            onClose={() => setIsAdminOpen(false)}
+            onClose={() => setIsOwnerMode(false)}
           />
         ) : (
           <>
@@ -122,12 +122,8 @@ export default function App() {
               {projects.length === 0 ? (
                 <div className="text-center py-24 text-slate-500">
                   <h3 className="text-2xl font-bold text-slate-300 mb-4">No projects added yet.</h3>
-                  <button 
-                    onClick={() => setIsAdminOpen(true)}
-                    className="mt-4 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors inline-flex items-center gap-2 shadow-lg shadow-indigo-500/20"
-                  >
-                    + ADD YOUR FIRST PROJECT
-                  </button>
+                  {/* Note: In public view, there is no way to add projects unless they activate Owner mode. We keep this empty state clean. */}
+                  <p className="text-lg">Check back soon for new games and websites!</p>
                 </div>
               ) : filteredProjects.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">

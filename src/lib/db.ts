@@ -72,3 +72,4 @@ export async function deleteAllProjectsDB(): Promise<void> {
     request.onsuccess = () => resolve();
   });
 }
+
